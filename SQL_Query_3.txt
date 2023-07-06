@@ -1,0 +1,68 @@
+I have SQL Server db on Azure Portal. I need to write a T-SQL query to retrieve sales revenue and quantity contributions by customer, calculated as a percentage of total sales revenue and quantity for each quarter and year
+
+I need to have a T-SQL query which performs the necessary data transformations and calculations. The query should return a data set which consists of following columns: [CustomerName], [TotalRevenuePercentage], [TotalQuantityPercentage], [Quarter], [Year]
+
+[CustomerName] comes as an alias  from table [Dimension].[Customer] column [Customer]. [Dimension].[Customer]  table has a primary key [Customer Key]
+
+[TotalRevenuePercentage] should come from [Fact].[Sale] table column Profit.
+
+[TotalQuantityPercentage] should come from [Fact].[Sale] table column Quantity.
+
+[Quarter] and [Year] should extract the value from [Fact].[Sale] table date column named InvoiceDateKey.
+
+[Dimension].[Customer]  and [Fact].[Sale] should be joined via inner join
+
+ChatGPT
+Assuming that [Fact].[Sale] table has a column named [Customer Key] that is the foreign key for the [Customer Key] in the [Dimension].[Customer] table, you can use the following T-SQL query:
+
+SQL
+Copy code
+WITH TotalRevenueAndQuantity AS
+(
+    SELECT 
+        DATEPART(QUARTER, InvoiceDateKey) AS Quarter,
+        DATEPART(YEAR, InvoiceDateKey) AS Year,
+        SUM(Profit) AS TotalRevenue,
+        SUM(Quantity) AS TotalQuantity
+    FROM 
+        [Fact].[Sale]
+    GROUP BY 
+        DATEPART(QUARTER, InvoiceDateKey),
+        DATEPART(YEAR, InvoiceDateKey)
+),
+CustomerRevenueAndQuantity AS
+(
+    SELECT 
+        C.Customer AS CustomerName,
+        DATEPART(QUARTER, S.InvoiceDateKey) AS Quarter,
+        DATEPART(YEAR, S.InvoiceDateKey) AS Year,
+        SUM(S.Profit) AS CustomerRevenue,
+        SUM(S.Quantity) AS CustomerQuantity
+    FROM 
+        [Fact].[Sale] AS S
+        INNER JOIN [Dimension].[Customer] AS C ON S.[Customer Key] = C.[Customer Key]
+    GROUP BY 
+        C.Customer,
+        DATEPART(QUARTER, S.InvoiceDateKey),
+        DATEPART(YEAR, S.InvoiceDateKey)
+)
+SELECT 
+    CR.CustomerName,
+    CR.CustomerRevenue / TR.TotalRevenue * 100 AS TotalRevenuePercentage,
+    CR.CustomerQuantity / TR.TotalQuantity * 100 AS TotalQuantityPercentage,
+    CR.Quarter,
+    CR.Year
+FROM 
+    CustomerRevenueAndQuantity AS CR
+    INNER JOIN TotalRevenueAndQuantity AS TR ON CR.Quarter = TR.Quarter AND CR.Year = TR.Year
+ORDER BY 
+    CR.Year,
+    CR.Quarter,
+    CR.CustomerName
+This query works by first calculating the total revenue and quantity for each quarter and year, then calculating the revenue and quantity for each customer for each quarter and year. Finally, it calculates the percentage contribution for each customer by dividing their revenue and quantity by the total revenue and quantity for that quarter and year.
+
+Please note that this query may not run if the schema or relationships are not exactly as described, or if the InvoiceDateKey column doesn't contain date information that can be parsed with the DATEPART function.
+
+
+
+
