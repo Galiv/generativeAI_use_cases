@@ -1,0 +1,50 @@
+I have SQL Server db on Azure Portal. I need to write Write a SQL query to retrieve top 10 best-selling products by revenue, with their corresponding sales revenue and quantity, for each quarter and year.
+
+I need to have a SQL query which performs the necessary data transformations and calculations. The query should return a data set which consists of following columns: [ProductName], [SalesQuantity], [SalesRevenue], [Quarter], [Year] 
+
+ProductName comes as an alias  from table Dimension.StockItem column StockItem. Dimension.StockItem table has a primary key [Stock Item Key]
+
+[SalesQuantity] should come from Fact.Sale table column Quantity.
+
+SalesRevenue should come from Fact.Sale table column Profit.
+
+[Quarter] and [Year] should extract the value from Fact.Sale table date column named InvoiceDateKey.
+
+Dimension.StockItem and Fact Sale should be joined via inner join
+
+ChatGPT
+Based on the table structure and your requirements, I suggest the following SQL script. Please note that SQL Server has the DATEPART function, which extracts the part of a date. This function can be used to extract quarter and year from InvoiceDateKey:
+
+sql
+Copy code
+SELECT 
+    D.StockItem as ProductName, 
+    SUM(F.Quantity) as SalesQuantity, 
+    SUM(F.Profit) as SalesRevenue,
+    DATEPART(QUARTER, F.InvoiceDateKey) as [Quarter],
+    DATEPART(YEAR, F.InvoiceDateKey) as [Year]
+FROM 
+    Dimension.StockItem D 
+INNER JOIN 
+    Fact.Sale F 
+ON 
+    D.[Stock Item Key] = F.[Stock Item Key]
+GROUP BY 
+    D.StockItem, 
+    DATEPART(QUARTER, F.InvoiceDateKey),
+    DATEPART(YEAR, F.InvoiceDateKey)
+ORDER BY 
+    SalesRevenue DESC
+FETCH FIRST 10 ROWS ONLY
+This SQL statement does the following:
+
+Joins the Dimension.StockItem and Fact.Sale tables on the [Stock Item Key] column.
+Groups the data by ProductName, Quarter, and Year.
+Summarizes SalesQuantity and SalesRevenue for each product by each Quarter and Year.
+Orders the data set by SalesRevenue in descending order.
+Returns only the first 10 rows, which correspond to the top 10 best-selling products by revenue.
+Please replace the table names, column names, and conditions according to your actual database schema and requirements. If there are any discrepancies, please provide the correct details.
+
+
+
+
